@@ -1,4 +1,4 @@
-from graphene import ObjectType,InputObjectType,Mutation, String, Field, Schema, ID, Int, List, NonNull, DateTime
+from graphene import ObjectType,InputObjectType,Mutation, String, Field, Schema, ID, Int, List, NonNull, DateTime,Boolean
 # from graphene_django.types import DjangoObjectType, ObjectType,
 from .models import *
 
@@ -48,8 +48,44 @@ class CreateTodo(Mutation):
         )
         return CreateTodo(todo=todo)
 
+
+#update
+class UpdateTodo(Mutation):
+    class Arguments:
+        id = Int(required=True)
+        input = TodoInput(required=True)
+
+    todo = Field(TodoType)
+
+    def mutate(self, info, id, input):
+        todo = Todo.objects.get(pk=id)
+        todo.title = input.title
+        todo.description = input.description
+        todo.status = input.status
+        todo.save()
+        return UpdateTodo(todo=todo)
+
+class DeleteTodo(Mutation):
+    class Arguments:
+        id = Int(required=True)
+
+    ok = Boolean()
+
+    def mutate(self, info, id):
+        try:
+            todo = Todo.objects.get(pk=id)
+            todo.delete()
+            ok = True
+        except:
+            ok = False
+        return DeleteTodo(ok=ok)
+
+
+
 class Mutation(ObjectType):
     create_todo = CreateTodo.Field()
+    update_todo = UpdateTodo.Field()
+    delete_todo = DeleteTodo.Field()
 
    
 schema = Schema(query=TodoQuery,mutation=Mutation)
