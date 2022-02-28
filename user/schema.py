@@ -1,17 +1,55 @@
-from email.policy import default
-from django.contrib.auth.models import User
-from graphene import ObjectType, String, Field, Schema, ID, Int, List, NonNull, DateTime
-
-class Query(ObjectType):
-    userName = String(first_name=String(default_value="Hello"), last_name=String(default_value="World"))
-    userAge = Int(age=Int(default_value=0))
-
-    def resolve_userName(self, info, first_name, last_name):
-        return f'{first_name} {last_name}'
-
-    def resolve_userAge(self, info, age):
-        return age
-
-schema = Schema(query=Query)
+from graphene import ObjectType,InputObjectType,Mutation, String, Field, Schema, ID, Int, List, NonNull, DateTime
+# from graphene_django.types import DjangoObjectType, ObjectType,
+from .models import *
 
 
+#types
+class TodoType(ObjectType):
+    id = ID()
+    title = String()
+    description = String()
+    status=String()
+
+class TodoInput(InputObjectType):
+    title = String(required=True)
+    description = String(required=True)
+    status = Int(default_value=1)
+
+
+
+#get
+class TodoQuery(ObjectType):
+    todo = Field(TodoType, id=Int())
+    todos = List(TodoType)
+
+    def resolve_todo(self, info, **kwargs):
+        id = kwargs.get('id')
+        try:
+            todo = Todo.objects.get(pk=id)
+        except:
+            todo = None
+        return todo
+
+    def resolve_todos(self, info, **kwargs):
+        return Todo.objects.all()
+
+#post
+class CreateTodo(Mutation):
+    class Arguments:
+        input = TodoInput(required=True)
+
+    todo = Field(TodoType)
+
+    def mutate(self, info, input):
+        todo = Todo.objects.create(
+            title=input.title,
+            description=input.description,
+            status=input.status
+        )
+        return CreateTodo(todo=todo)
+
+class Mutation(ObjectType):
+    create_todo = CreateTodo.Field()
+
+   
+schema = Schema(query=TodoQuery,mutation=Mutation)
